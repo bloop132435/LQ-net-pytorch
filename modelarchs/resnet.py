@@ -20,9 +20,11 @@ model_urls = {
     'resnet50': 'https://download.pytorch.org/models/resnet50-0676ba61.pth'
 }
 
+
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     """1x1 convolution"""
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
 
 class LambdaLayer(nn.Module):
     def __init__(self, lambd):
@@ -31,6 +33,7 @@ class LambdaLayer(nn.Module):
 
     def forward(self, x):
         return self.lambd(x)
+
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -45,9 +48,10 @@ class BasicBlock(nn.Module):
         #self.relu2 = nn.ReLU(inplace=True)
         #self.conv2 = conv3x3(planes, planes)
 
-        self.conv1 = convbnrelu_block(inplanes, planes, kernel_size=3, padding=1, stride=stride, relu=True)
-        self.conv2 = convbnresrelu_block(planes, planes, kernel_size=3, padding=1, stride=1, relu=True)
-        
+        self.conv1 = convbnrelu_block(
+            inplanes, planes, kernel_size=3, padding=1, stride=stride, relu=nn.ReLU)
+        self.conv2 = convbnresrelu_block(
+            planes, planes, kernel_size=3, padding=1, stride=1, relu=nn.ReLU)
 
         self.downsample = downsample
 
@@ -68,6 +72,8 @@ class BasicBlock(nn.Module):
         #out += residual
 
         return out
+
+
 class Bottleneck(nn.Module):
     # Bottleneck in torchvision places the stride for downsampling at 3x3 convolution(self.conv2)
     # while original implementation places the stride at the first 1x1 convolution(self.conv1)
@@ -98,14 +104,17 @@ class Bottleneck(nn.Module):
         #self.conv3 = conv1x1(width, planes * self.expansion)
         #self.bn3 = norm_layer(planes * self.expansion)
         #self.relu = nn.ReLU(inplace=True)
-        self.conv1 = convbnrelu_block(inplanes, width, kernel_size=1, padding=0, stride=1, relu=True)
-        self.conv2 = convbnrelu_block(width, width, kernel_size=3, padding=1, stride=stride, relu=True)
-        self.conv3 = convbnresrelu_block(width, planes * self.expansion, kernel_size=1, padding=0, stride=1, relu=True)
+        self.conv1 = convbnrelu_block(
+            inplanes, width, kernel_size=1, padding=0, stride=1, relu=True)
+        self.conv2 = convbnrelu_block(
+            width, width, kernel_size=3, padding=1, stride=stride, relu=True)
+        self.conv3 = convbnresrelu_block(
+            width, planes * self.expansion, kernel_size=1, padding=0, stride=1, relu=True)
 
         self.downsample = downsample
         self.stride = stride
 
-    def forward(self, x) :
+    def forward(self, x):
         identity = x
 
         #out = self.conv1(x)
@@ -130,10 +139,11 @@ class Bottleneck(nn.Module):
 
         return out
 
+
 class _make_layer(nn.Module):
-    def __init__(self, block, inplanes, planes, blocks, stride =1, option='A'):
-        super(_make_layer,self).__init__()
-        self.inplanes=inplanes
+    def __init__(self, block, inplanes, planes, blocks, stride=1, option='A'):
+        super(_make_layer, self).__init__()
+        self.inplanes = inplanes
         downsample = None
         if option == 'A':
             '''
@@ -151,10 +161,10 @@ class _make_layer(nn.Module):
             '''
             if stride != 1 or self.inplanes != planes * block.expansion:
                 downsample = LambdaLayer(lambda x:
-                                            F.pad(x[:, :, ::2, ::2], (0, 0, 0, 0, planes//4, planes//4), "constant", 0))
+                                         F.pad(x[:, :, ::2, ::2], (0, 0, 0, 0, planes//4, planes//4), "constant", 0))
 
         self.layers = nn.ModuleList()
-        self.layers.append(block(self.inplanes,planes,stride,downsample))
+        self.layers.append(block(self.inplanes, planes, stride, downsample))
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
             self.layers.append(block(self.inplanes, planes))
@@ -164,30 +174,36 @@ class _make_layer(nn.Module):
             x = self.layers[i](x)
         return x
 
+
 class ResNet(nn.Module):
     def __init__(self, block, layers, nclass=1000, zero_init_residual=False, expansion=1):
-        super(ResNet,self).__init__()
+        super(ResNet, self).__init__()
         self.nclass = nclass
         self.inplanes = 64
         self.expansion = expansion
         #self.conv1 = conv3x3(3,self.inplanes)
         #self.bn1 = nn.BatchNorm2d(self.inplanes)
         #self.relu = nn.ReLU(inplace=True)
-        self.layer0 = convbnrelu_block(3, self.inplanes,kernel_size=7, stride=2, padding=3)
+        self.layer0 = convbnrelu_block(
+            3, self.inplanes, kernel_size=7, stride=2, padding=3)
 
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.layer1 = _make_layer(block,64,64,layers[0],stride=1)
-        self.layer2 = _make_layer(block,64*self.expansion,128,layers[1],stride=2)
-        self.layer3 = _make_layer(block,128*self.expansion,256,layers[2],stride=2)
-        self.layer4 = _make_layer(block,256*self.expansion,512,layers[3],stride=2)
+        self.layer1 = _make_layer(block, 64, 64, layers[0], stride=1)
+        self.layer2 = _make_layer(
+            block, 64*self.expansion, 128, layers[1], stride=2)
+        self.layer3 = _make_layer(
+            block, 128*self.expansion, 256, layers[2], stride=2)
+        self.layer4 = _make_layer(
+            block, 256*self.expansion, 512, layers[3], stride=2)
 
-        self.avgpool = nn.AdaptiveAvgPool2d((1,1))
-        self.fc = nn.Linear(512* block.expansion, nclass)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(512 * block.expansion, nclass)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.kaiming_normal_(
+                    m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -198,12 +214,13 @@ class ResNet(nn.Module):
         if zero_init_residual:
             for m in self.modules():
                 if isinstance(m, Bottleneck):
-                    nn.init.constant_(m.bn3.weight, 0)  # type: ignore[arg-type]
+                    # type: ignore[arg-type]
+                    nn.init.constant_(m.bn3.weight, 0)
                 elif isinstance(m, BasicBlock):
-                    nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
+                    # type: ignore[arg-type]
+                    nn.init.constant_(m.bn2.weight, 0)
 
-
-    def forward(self,x):
+    def forward(self, x):
 
         x = self.layer0(x)
         x = self.maxpool(x)
@@ -214,13 +231,13 @@ class ResNet(nn.Module):
         x = self.layer4(x)
 
         x = self.avgpool(x)
-        x = torch.flatten(x,1)
+        x = torch.flatten(x, 1)
         x = self.fc(x)
-        
+
         return x
 
 
-#def resnet20(nclass=10):
+# def resnet20(nclass=10):
 #    return ResNet(BasicBlock, [3,3,3], nclass=nclass)
 
 def resnet18(pretrained: bool = False, progress: bool = True, **kwargs):
@@ -234,31 +251,31 @@ def resnet18(pretrained: bool = False, progress: bool = True, **kwargs):
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls['resnet18'],
                                               progress=progress)
-        
-        new_key_dict1={"conv1":"layer0.conv", "bn1": "layer0.bn"}
-        new_key_dict2={"conv1":"conv1.conv", "bn1": "conv1.bn","conv2":"conv2.conv", "bn2":"conv2.bn"}
+
+        new_key_dict1 = {"conv1": "layer0.conv", "bn1": "layer0.bn"}
+        new_key_dict2 = {"conv1": "conv1.conv", "bn1": "conv1.bn",
+                         "conv2": "conv2.conv", "bn2": "conv2.bn"}
         for key in list(state_dict.keys()):
-            #print(key)
+            # print(key)
             split_keys = key.split(".")
             if split_keys[0] in new_key_dict1.keys():
-                new_key = new_key_dict1[split_keys[0]]+"."+key.split(".",1)[1]
+                new_key = new_key_dict1[split_keys[0]]+"."+key.split(".", 1)[1]
                 state_dict[new_key] = state_dict.pop(key)
             elif "layer" in split_keys[0]:
                 if split_keys[2] in new_key_dict2.keys():
-                    new_key = key.replace(split_keys[2], new_key_dict2[split_keys[2]])
-                    new_key_split = new_key.split(".",1)
+                    new_key = key.replace(
+                        split_keys[2], new_key_dict2[split_keys[2]])
+                    new_key_split = new_key.split(".", 1)
                     new_key = new_key_split[0] + ".layers." + new_key_split[1]
                     state_dict[new_key] = state_dict.pop(key)
                 elif "downsample" in split_keys:
-                    new_key_split = key.split(".",1)
+                    new_key_split = key.split(".", 1)
                     new_key = new_key_split[0] + ".layers." + new_key_split[1]
                     state_dict[new_key] = state_dict.pop(key)
-
 
         model.load_state_dict(state_dict)
 
     return model
-
 
 
 def resnet50(pretrained: bool = False, progress: bool = True, **kwargs: Any):
@@ -268,59 +285,65 @@ def resnet50(pretrained: bool = False, progress: bool = True, **kwargs: Any):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    model =  ResNet(Bottleneck, [3, 4, 6, 3], expansion=4, **kwargs)
-    
+    model = ResNet(Bottleneck, [3, 4, 6, 3], expansion=4, **kwargs)
+
     if pretrained:
         state_dict = load_state_dict_from_url(model_urls['resnet50'],
                                               progress=progress)
-        
-        new_key_dict1={"conv1":"layer0.conv", "bn1": "layer0.bn"}
-        new_key_dict2={"conv1":"conv1.conv", "bn1": "conv1.bn","conv2":"conv2.conv", "bn2":"conv2.bn",
-                    "conv3":"conv3.conv", "bn3": "conv3.bn"}
+
+        new_key_dict1 = {"conv1": "layer0.conv", "bn1": "layer0.bn"}
+        new_key_dict2 = {"conv1": "conv1.conv", "bn1": "conv1.bn", "conv2": "conv2.conv", "bn2": "conv2.bn",
+                         "conv3": "conv3.conv", "bn3": "conv3.bn"}
         for key in list(state_dict.keys()):
-            #print(key)
+            # print(key)
             split_keys = key.split(".")
             if split_keys[0] in new_key_dict1.keys():
-                new_key = new_key_dict1[split_keys[0]]+"."+key.split(".",1)[1]
+                new_key = new_key_dict1[split_keys[0]]+"."+key.split(".", 1)[1]
                 state_dict[new_key] = state_dict.pop(key)
             elif "layer" in split_keys[0]:
                 if split_keys[2] in new_key_dict2.keys():
-                    new_key = key.replace(split_keys[2], new_key_dict2[split_keys[2]])
-                    new_key_split = new_key.split(".",1)
+                    new_key = key.replace(
+                        split_keys[2], new_key_dict2[split_keys[2]])
+                    new_key_split = new_key.split(".", 1)
                     new_key = new_key_split[0] + ".layers." + new_key_split[1]
                     state_dict[new_key] = state_dict.pop(key)
                 elif "downsample" in split_keys:
-                    new_key_split = key.split(".",1)
+                    new_key_split = key.split(".", 1)
                     new_key = new_key_split[0] + ".layers." + new_key_split[1]
                     state_dict[new_key] = state_dict.pop(key)
 
-        
         model.load_state_dict(state_dict)
 
     return model
 
+
 class ResNet_cifar10(nn.Module):
     def __init__(self, block, layers, nclass=10, zero_init_residual=False):
-        super(ResNet_cifar10,self).__init__()
+        super(ResNet_cifar10, self).__init__()
         self.nclass = nclass
         self.inplanes = 16
         #self.conv1 = conv3x3(3,self.inplanes)
         #self.bn1 = nn.BatchNorm2d(self.inplanes)
         #self.relu = nn.ReLU(inplace=True)
-        self.layer0 = convbnrelu_block(3, self.inplanes,kernel_size=3, stride=1, padding=1)
+        self.layer0 = convbnrelu_block(
+            3, self.inplanes, kernel_size=3, stride=1, padding=1)
 
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        self.layer1 = _make_layer(block,16,16,layers[0],stride=1, option='B')
-        self.layer2 = _make_layer(block,16,32,layers[1],stride=2, option='B')
-        self.layer3 = _make_layer(block,32,64,layers[2],stride=2, option='B')
+        self.layer1 = _make_layer(
+            block, 16, 16, layers[0], stride=1, option='B')
+        self.layer2 = _make_layer(
+            block, 16, 32, layers[1], stride=2, option='B')
+        self.layer3 = _make_layer(
+            block, 32, 64, layers[2], stride=2, option='B')
 
-        self.avgpool = nn.AdaptiveAvgPool2d((1,1))
-        self.fc = nn.Linear(64* block.expansion, nclass)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(64 * block.expansion, nclass)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.kaiming_normal_(
+                    m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -331,12 +354,13 @@ class ResNet_cifar10(nn.Module):
         if zero_init_residual:
             for m in self.modules():
                 if isinstance(m, Bottleneck):
-                    nn.init.constant_(m.bn3.weight, 0)  # type: ignore[arg-type]
+                    # type: ignore[arg-type]
+                    nn.init.constant_(m.bn3.weight, 0)
                 elif isinstance(m, BasicBlock):
-                    nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
+                    # type: ignore[arg-type]
+                    nn.init.constant_(m.bn2.weight, 0)
 
-
-    def forward(self,x):
+    def forward(self, x):
 
         x = self.layer0(x)
 
@@ -346,10 +370,11 @@ class ResNet_cifar10(nn.Module):
 
         #x = self.avgpool(x)
         x = F.avg_pool2d(x, x.shape[3])
-        x = torch.flatten(x,1)
+        x = torch.flatten(x, 1)
         x = self.fc(x)
-        
+
         return x
+
 
 def resnet20(pretrained: bool = True, progress: bool = True, **kwargs):
     r"""ResNet-20 model from
@@ -359,27 +384,29 @@ def resnet20(pretrained: bool = True, progress: bool = True, **kwargs):
         progress (bool): If True, displays a progress bar of the download to stderr
     """
     model = ResNet_cifar10(BasicBlock, [3, 3, 3], **kwargs)
-    #print('pretrained',pretrained)
+    # print('pretrained',pretrained)
     if pretrained:
         chk = torch.load('./saved_models/resnet20-12fca82f.th')
         state_dict = chk['state_dict']
-        
-        new_key_dict1={"conv1":"layer0.conv", "bn1": "layer0.bn"}
-        new_key_dict2={"conv1":"conv1.conv", "bn1": "conv1.bn","conv2":"conv2.conv", "bn2":"conv2.bn"}
+
+        new_key_dict1 = {"conv1": "layer0.conv", "bn1": "layer0.bn"}
+        new_key_dict2 = {"conv1": "conv1.conv", "bn1": "conv1.bn",
+                         "conv2": "conv2.conv", "bn2": "conv2.bn"}
         for key in list(state_dict.keys()):
-            #print(key)
+            # print(key)
             split_keys = key.split(".")
             if split_keys[1] in new_key_dict1.keys():
                 new_key = new_key_dict1[split_keys[1]]+"."+split_keys[2]
                 state_dict[new_key] = state_dict.pop(key)
-            
+
             elif "layer" in split_keys[1]:
                 if split_keys[3] in new_key_dict2.keys():
                     #new_key = key.replace(split_keys[2], new_key_dict2[split_keys[2]])
                     #new_key_split = new_key.split(".",1)
-                    new_key = split_keys[1] + ".layers." + split_keys[2]+"."+new_key_dict2[split_keys[3]]+"."+split_keys[4]
+                    new_key = split_keys[1] + ".layers." + split_keys[2] + \
+                        "."+new_key_dict2[split_keys[3]]+"."+split_keys[4]
                     state_dict[new_key] = state_dict.pop(key)
-        
+
             elif "linear" in split_keys[1]:
                 new_key = "fc."+split_keys[2]
                 state_dict[new_key] = state_dict.pop(key)
