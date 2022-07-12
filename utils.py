@@ -19,6 +19,7 @@ from torch.autograd import Variable
 import modelarchs
 
 def save_state(model, best_acc, epoch, args,optimizer, isbest, quant_info=None, quantActdict=None):
+    return
     if args.block_type == 'convbnsilu':
         dirpath = 'saved_models/swish/'
     else:
@@ -43,7 +44,7 @@ def save_state(model, best_acc, epoch, args,optimizer, isbest, quant_info=None, 
     torch.save(state,dirpath+filename)
     if isbest:
         shutil.copyfile(dirpath+filename, dirpath+'best.'+filename)
-    
+
     #torch.save(state,'saved_models/{}.{}.{}.ckp_origin.pth.tar'.format(args.arch,args.ds,args.crop))
     return
 
@@ -61,7 +62,7 @@ def load_state(model, state_dict):
         else:
             print(f"{key} is missing in state_dict")
 
-    
+
     #model.load_state_dict(state_dict)
     return
 
@@ -151,14 +152,14 @@ def gen_target_weights(model, arch):
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                 target_weights.append(m.weight)
         target_weights = target_weights[1:-1]
-    
+
     #elif arch == 'resnet50':
     #    for m in model.modules():
     #        if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
     #            target_weights.append(m.weight)
     #    target_weights = target_weights[1:4] + target_weights[5:14] + \
     #        target_weights[15:27] + target_weights[28:46] + target_weights[47:-1]
-    
+
 
     elif arch == 'alexnet' or 'vgg' in arch or arch == 'googlenet' or arch == 'squeezenet':
         for m in model.modules():
@@ -183,7 +184,7 @@ def weight_mean(model,arch):
                 if (m.weight.data.shape[1] > 3) and (m.weight.data.shape[2] > 1):
                     print(i,'th layer mean',torch.mean(m.weight.data)/torch.min(m.weight.data.abs()))
                     i = i+1
-                    
+
 
     elif arch == 'all_cnn_c' or arch == 'all_cnn_net' or arch == 'squeezenet' or arch == 'resnet20' or arch == 'resnet50':
         for m in model.modules():
@@ -201,4 +202,4 @@ def weight_mean(model,arch):
     else:
         raise Exception ('{} not supported'.format(arch))
     print('\n')
-    return 
+    return
