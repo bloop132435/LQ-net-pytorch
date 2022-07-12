@@ -295,12 +295,12 @@ if __name__=='__main__':
 
 
     elif args.arch == 'resnet18':
-        pretrained = False if args.pretrained is not None else True
+        pretrained = False if args.pretrained is None else True
         model = modelarchs.resnet18(pretrained = pretrained)
         bestacc = 0
 
     elif args.arch == 'resnet20':
-        pretrained = False if args.pretrained is not None else True
+        pretrained = False if args.pretrained is None else True
         model = modelarchs.resnet20(pretrained = pretrained)
         bestacc = 0
 
