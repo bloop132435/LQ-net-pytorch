@@ -174,7 +174,7 @@ def accuracy(output, target, topk=(1,)):
 if __name__=='__main__':
     imagenet_datapath= '/datasets01/imagenet_full_size/061417/'
     parser = argparse.ArgumentParser(description='PyTorch MNIST ResNet Example')
-    parser.add_argument('--no_cuda', default=False, 
+    parser.add_argument('--no_cuda', default=False,
             help = 'do not use cuda',action='store_true')
     parser.add_argument('--epochs', type=int, default=450, metavar='N',
             help='number of epochs to train (default: 450)')
@@ -204,15 +204,15 @@ if __name__=='__main__':
                         resnet20 | resnet18 | resnet50 | all_cnn_net | alexnet')
     parser.add_argument('--dataset', action='store', default='cifar10',
             help='pretrained model: cifar10 | imagenet')
-    parser.add_argument('--lq', default=False, 
+    parser.add_argument('--lq', default=False,
             help = 'use lq-net quantization or not',action='store_true')
     parser.add_argument('--bits', default = [2,2,2,2,2,2,2,2,2], type = int,
                     nargs = '*', help = ' num of bits for each layer')
-    parser.add_argument('--needbias', default=False, 
+    parser.add_argument('--needbias', default=False,
             help = 'use bias in quantized value or not',action='store_true')
     parser.add_argument('--block_type', action='store', default='convbnrelu',
             help='convbnrelu, convrelubn or convbnsilu')
-    parser.add_argument('--quantAct', default=False, 
+    parser.add_argument('--quantAct', default=False,
             help = 'quant activations or not',action='store_true')
 
     args = parser.parse_args()
@@ -292,16 +292,16 @@ if __name__=='__main__':
         pretrained = True
         model = modelarchs.resnet50(pretrained = pretrained)
         bestacc = 0
-        
+
 
     elif args.arch == 'resnet18':
-        #pretrained = False if args.pretrained is not None else True
+        pretrained = False if args.pretrained is not None else True
         pretrained = True
         model = modelarchs.resnet18(pretrained = pretrained)
         bestacc = 0
-    
+
     elif args.arch == 'resnet20':
-        #pretrained = False if args.pretrained is not None else True
+        pretrained = False if args.pretrained is not None else True
         pretrained = True
         model = modelarchs.resnet20(pretrained = pretrained)
         bestacc = 0
@@ -318,10 +318,10 @@ if __name__=='__main__':
     elif args.arch == 'squeezenet':
         model = modelarchs.squeezenet1_1(pretrained=True, progress=True, quantAct=args.quantAct,
             bits = args.bits[0])
-    
+
     elif args.arch == 'mobilenet_v2':
         model = modelarchs.mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1)
-    
+
     elif args.arch == 'googlenet':
         model = modelarchs.googlenet(pretrained=True, progress=True)
 
@@ -344,7 +344,7 @@ if __name__=='__main__':
         raise ValueError("Unsupported arch {}".format(args.arch))
 
     criterion = nn.CrossEntropyLoss().cuda()
-    optimizer = optim.SGD(model.parameters(), 
+    optimizer = optim.SGD(model.parameters(),
                 lr=args.lr, momentum=args.momentum, weight_decay= args.weight_decay)
 
     if not args.pretrained:
@@ -365,7 +365,7 @@ if __name__=='__main__':
 
     if args.cuda:
         model.cuda()
-        model = nn.DataParallel(model, 
+        model = nn.DataParallel(model,
                     device_ids=range(torch.cuda.device_count()))
         #model = nn.DataParallel(model, device_ids=args.gpu)
 
@@ -395,7 +395,7 @@ if __name__=='__main__':
 
     ''' train model '''
     quantActdict={}
-    
+
     for epoch in range(0,args.epochs):
         running_loss = 0.0
         adjust_learning_rate(optimizer, epoch, args)
@@ -416,7 +416,7 @@ if __name__=='__main__':
         if args.lq:
             LQ.restoreW()
         print('best acc so far:{:4.2f}'.format(bestacc))
-    
+
     if args.lq:
         filename='saved_models/best.lq.'+str(args.arch)+'_'+str(args.bits[0])+'.ckp_origin.pth.tar'
         best_model = torch.load(filename)
